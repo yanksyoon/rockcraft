@@ -1,0 +1,109 @@
+###########################################
+# IMPORTANT
+# Comments matter!
+# The docs use the wrapping comments as
+# markers for including said instructions
+# as snippets in the docs.
+###########################################
+summary: Getting started with Spring Boot tutorial
+
+environment:
+
+execute: |
+  # [docs:init-app]
+  sudo apt update -y && sudo apt install -y unzip openjdk-17-jdk
+  wget "https://github.com/spring-projects/spring-cli/releases/download/v0.9.0/\
+  spring-cli-standalone-0.9.0-linux.x86_64.zip"
+  unzip spring-cli-standalone-0.9.0-linux.x86_64.zip
+  spring-cli-standalone-0.9.0-linux-x86_64/bin/spring boot new app
+
+  chmod +x ./mvnw
+  # [docs:init-app-end]
+
+  ./mvnw spring-boot:run &
+
+  retry -n 5 --wait 30 curl localhost:8080
+
+  # [docs:curl-spring-boot]
+  curl localhost:8080
+  # [docs:curl-spring-boot-end]
+
+  kill $!
+
+  # [docs:create-rockcraft-yaml]
+  rockcraft init --profile spring-boot-framework
+  # [docs:create-rockcraft-yaml-end]
+
+  # [docs:experimental]
+  export ROCKCRAFT_ENABLE_EXPERIMENTAL_EXTENSIONS=True
+  # [docs:experimental-end]
+
+  sed -i "s/name: .*/name: spring-boot-hello-world/g" rockcraft.yaml
+
+  # [docs:pack]
+  rockcraft pack
+  # [docs:pack-end]
+
+  # [docs:ls-rock]
+  ls *.rock -l --block-size=MB
+  # [docs:ls-rock-end]
+
+  # [docs:skopeo-copy]
+  sudo rockcraft.skopeo --insecure-policy \
+    copy oci-archive:spring-boot-hello-world_0.1_amd64.rock \
+    docker-daemon:spring-boot-hello-world:0.1
+  # [docs:skopeo-copy-end]
+
+  # [docs:docker-images]
+  sudo docker images spring-boot-hello-world:0.1
+  # [docs:docker-images-end]
+
+  # [docs:docker-run]
+  sudo docker run --rm -d -p 8080:8080 \
+    --name spring-boot-hello-world spring-boot-hello-world:0.1
+  # [docs:docker-run-end]
+  retry -n 5 --wait 2 curl localhost:8080
+
+  # [docs:curl-spring-boot-rock]
+  curl localhost:8080
+  # [docs:curl-spring-boot-rock-end]
+
+  # [docs:get-logs]
+  sudo docker exec spring-boot-hello-world pebble logs spring-boot
+  # [docs:get-logs-end]
+
+  # [docs:stop-docker]
+  sudo docker stop spring-boot-hello-world
+  sudo docker rmi spring-boot-hello-world:0.1
+  # [docs:stop-docker-end]
+
+  mv Application.java src/main/java/com/example/spring_boot/Application.java
+  sed -i "s/version: .*/version: 0.2/g" rockcraft.yaml
+
+  # [docs:docker-run-update]
+  rockcraft clean && rockcraft pack
+  sudo rockcraft.skopeo --insecure-policy \
+    copy oci-archive:spring-boot-hello-world_0.2_amd64.rock \
+    docker-daemon:spring-boot-hello-world:0.2
+  sudo docker images spring-boot-hello-world:0.2
+  sudo docker run --rm -d -p 8080:8080 \
+    --name spring-boot-hello-world spring-boot-hello-world:0.2
+  # [docs:docker-run-update-end]
+  retry -n 5 --wait 2 curl --fail localhost:8080/time
+
+  # [docs:curl-time]
+  curl --fail localhost:8080/time
+  # [docs:curl-time-end]
+
+  # [docs:stop-docker-updated]
+  sudo docker stop spring-boot-hello-world
+  sudo docker rmi spring-boot-hello-world:0.2
+  # [docs:stop-docker-updated-end]
+
+  # [docs:cleanup]
+  # delete all the files created during the tutorial
+  rm spring-boot-hello-world_0.1_amd64.rock \
+    spring-boot-hello-world_0.1-chiselled_amd64.rock \
+    spring-boot-hello-world_0.2_amd64.rock \
+    rockcraft.yaml
+  # [docs:cleanup-end]
